@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 
 // INCREASE BODY LIMIT for large HTML payloads
-app.use(express.json({ limit: '50mb' })); 
+app.use(express.json({ limit: '50mb' }));
 
 // ==========================================
 // TEMPLATE GENERATORS
@@ -68,8 +68,8 @@ const generateTextTemplate = ({ headline, summary, tag, date }) => `
 // Template B: Image Background (Editorial Overlay)
 const generateImageTemplate = ({ headline, summary, tag, imageUrl }) => {
   // <--- UPDATED: Safely encode URL to prevent CSS breakage if it has quotes
-  const safeUrl = imageUrl.replace(/'/g, "%27"); 
-  
+  const safeUrl = imageUrl.replace(/'/g, "%27");
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -110,88 +110,98 @@ const generateImageTemplate = ({ headline, summary, tag, imageUrl }) => {
 // API ENDPOINT
 // ==========================================
 app.post('/generate-image', async (req, res) => {
-    let browser = null;
-    console.log("Generating image...");
+  let browser = null;
+  console.log("Generating image...");
 
-    try {
-        const { 
-            headline, summary, tag, date, backgroundImageUrl, htmlOverride, options 
-        } = req.body;
+  try {
+    const {
+      headline, summary, tag, date, backgroundImageUrl, htmlOverride, options
+    } = req.body;
 
-        const viewportWidth = options?.width || 1080;
-        const viewportHeight = options?.height || 1350;
-        const scale = options?.scale || 2;
+    const viewportWidth = options?.width || 1080;
+    const viewportHeight = options?.height || 1350;
+    const scale = options?.scale || 2;
 
-        let finalHtml;
-        // <--- UPDATED: Strategy selection variable
-        let shouldUseNetworkWait = false; 
+    let finalHtml;
+    // <--- UPDATED: Strategy selection variable
+    let shouldUseNetworkWait = false;
 
-        // LOGIC: Choose template & Wait Strategy
-        if (htmlOverride) {
-            finalHtml = htmlOverride;
-            shouldUseNetworkWait = true; // Assume custom HTML needs network resources
-        } else if (backgroundImageUrl) {
-            finalHtml = generateImageTemplate({ headline, summary, tag, imageUrl: backgroundImageUrl });
-            shouldUseNetworkWait = true; // <--- UPDATED: Images require network wait
-        } else {
-            finalHtml = generateTextTemplate({ headline, summary, tag, date });
-            shouldUseNetworkWait = false; // <--- UPDATED: Text only can use fast wait
-        }
-
-        browser = await puppeteer.launch({ 
-            headless: "new",
-            executablePath: puppeteer.executablePath(),
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        
-        const page = await browser.newPage();
-        await page.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: scale });
-
-        // <--- UPDATED: Conditional Loading Strategy based on content type
-        if (shouldUseNetworkWait) {
-            // IMAGE MODE: Wait for network activity to settle (fetches images)
-            console.log("Mode: Image/Complex - Waiting for network idle...");
-            try {
-                 // networkidle2 allows 2 active connections (good for stubborn tracking scripts)
-                 // Give it 90s for large images
-                await page.setContent(finalHtml, { waitUntil: "networkidle2", timeout: 90000 });
-                // Extra tiny sleep to allow image decoding after download finishes
-                await new Promise(r => setTimeout(r, 1000)); 
-            } catch (e) {
-                console.warn("Network wait timed out, attempting to snap anyway.");
-            }
-        } else {
-            // TEXT MODE: Fast load, just wait for structure
-            console.log("Mode: Text Only - Fast load...");
-            await page.setContent(finalHtml, { waitUntil: "domcontentloaded", timeout: 30000 });
-        }
-
-        // Always double-check fonts
-        try {
-            await page.waitForFunction('document.fonts.ready', { timeout: 5000 });
-        } catch (error) {
-            console.log("⚠️ Fonts check timed out, using fallback.");
-        }
-
-        const imageBuffer = await page.screenshot({ type: 'png', fullPage: false });
-
-        console.log("Image generated successfully.");
-        res.set('Content-Type', 'image/png');
-        res.send(imageBuffer);
-
-    } catch (error) {
-        console.error("Error generating image:", error.message);
-        // Only send error json if headers haven't been sent yet (avoids double response error)
-        if (!res.headersSent) {
-             res.status(500).json({ error: "Failed to generate image", details: error.message });
-        }
-    } finally {
-        if (browser) await browser.close();
+    // LOGIC: Choose template & Wait Strategy
+    if (htmlOverride) {
+      finalHtml = htmlOverride;
+      shouldUseNetworkWait = true; // Assume custom HTML needs network resources
+    } else if (backgroundImageUrl) {
+      finalHtml = generateImageTemplate({ headline, summary, tag, imageUrl: backgroundImageUrl });
+      shouldUseNetworkWait = true; // <--- UPDATED: Images require network wait
+    } else {
+      finalHtml = generateTextTemplate({ headline, summary, tag, date });
+      shouldUseNetworkWait = false; // <--- UPDATED: Text only can use fast wait
     }
+
+    const isRender = !!process.env.RENDER;
+
+    browser = await puppeteer.launch({
+      headless: "new",
+      executablePath: isRender ? puppeteer.executablePath() : undefined,
+      args: isRender
+        ? ['--no-sandbox', '--disable-setuid-sandbox']
+        : []
+    });
+
+    // browser = await puppeteer.launch({ 
+    //     headless: "new",
+    //     executablePath: puppeteer.executablePath(),
+    //     args: ['--no-sandbox', '--disable-setuid-sandbox']
+    // });
+
+    const page = await browser.newPage();
+    await page.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: scale });
+
+    // <--- UPDATED: Conditional Loading Strategy based on content type
+    if (shouldUseNetworkWait) {
+      // IMAGE MODE: Wait for network activity to settle (fetches images)
+      console.log("Mode: Image/Complex - Waiting for network idle...");
+      try {
+        // networkidle2 allows 2 active connections (good for stubborn tracking scripts)
+        // Give it 90s for large images
+        await page.setContent(finalHtml, { waitUntil: "networkidle2", timeout: 90000 });
+        // Extra tiny sleep to allow image decoding after download finishes
+        await new Promise(r => setTimeout(r, 1000));
+      } catch (e) {
+        console.warn("Network wait timed out, attempting to snap anyway.");
+      }
+    } else {
+      // TEXT MODE: Fast load, just wait for structure
+      console.log("Mode: Text Only - Fast load...");
+      await page.setContent(finalHtml, { waitUntil: "domcontentloaded", timeout: 30000 });
+    }
+
+    // Always double-check fonts
+    try {
+      await page.waitForFunction('document.fonts.ready', { timeout: 5000 });
+    } catch (error) {
+      console.log("⚠️ Fonts check timed out, using fallback.");
+    }
+
+    const imageBuffer = await page.screenshot({ type: 'png', fullPage: false });
+
+    console.log("Image generated successfully.");
+    res.set('Content-Type', 'image/png');
+    res.send(imageBuffer);
+
+  } catch (error) {
+    console.error("Error generating image:", error.message);
+    // Only send error json if headers haven't been sent yet (avoids double response error)
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to generate image", details: error.message });
+    }
+  } finally {
+    if (browser) await browser.close();
+  }
 });
 
 app.get('/', (req, res) => {
-    res.send('You server is Started');
+  res.send('You server is Started');
 });
 
 app.listen(PORT, () => {
