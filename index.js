@@ -140,6 +140,7 @@ app.post('/generate-image', async (req, res) => {
 
         browser = await puppeteer.launch({ 
             headless: "new",
+            executablePath: puppeteer.executablePath(),
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
         
@@ -187,6 +188,10 @@ app.post('/generate-image', async (req, res) => {
     } finally {
         if (browser) await browser.close();
     }
+});
+
+app.get('/', (req, res) => {
+    res.send('You server is Started');
 });
 
 app.listen(PORT, () => {
