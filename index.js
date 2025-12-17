@@ -1,5 +1,7 @@
 import express from 'express';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -138,15 +140,13 @@ app.post('/generate-image', async (req, res) => {
       shouldUseNetworkWait = false; // <--- UPDATED: Text only can use fast wait
     }
 
-    const isRender = !!process.env.RENDER;
+  browser = await puppeteer.launch({
+  args: chromium.args,
+  defaultViewport: chromium.defaultViewport,
+  executablePath: await chromium.executablePath(),
+  headless: chromium.headless
+});
 
-    browser = await puppeteer.launch({
-      headless: "new",
-      executablePath: isRender ? puppeteer.executablePath() : undefined,
-      args: isRender
-        ? ['--no-sandbox', '--disable-setuid-sandbox']
-        : []
-    });
 
     // browser = await puppeteer.launch({ 
     //     headless: "new",
