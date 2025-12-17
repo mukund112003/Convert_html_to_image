@@ -9,31 +9,42 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: "50mb" }));
 
 /* ======================================================
-   BROWSER SINGLETON (CRITICAL FOR RENDER)
+   BROWSER SINGLETON (FIXED FOR ETXTBSY)
 ====================================================== */
 
 let browserPromise = null;
-let chromiumPath = null;
 
 async function getBrowser() {
-  if (!browserPromise) {
-    if (!chromiumPath) {
-      chromiumPath = await chromium.executablePath();
-      console.log("✅ Chromium path resolved:", chromiumPath);
-    }
+  // If a promise already exists (pending or resolved), return it.
+  // This prevents multiple requests from trying to extract Chromium at once.
+  if (browserPromise) return browserPromise;
 
-    browserPromise = puppeteer.launch({
-      executablePath: chromiumPath,
-      headless: chromium.headless,
-      defaultViewport: chromium.defaultViewport,
-      args: [
-        ...chromium.args,
-        "--single-process",
-        "--no-zygote",
-        "--disable-dev-shm-usage",
-      ],
-    });
-  }
+  browserPromise = (async () => {
+    try {
+      console.log("⏳ Resolving Chromium path...");
+      const executablePath = await chromium.executablePath();
+      
+      console.log("🚀 Launching Browser...");
+      return await puppeteer.launch({
+        executablePath,
+        headless: chromium.headless,
+        defaultViewport: chromium.defaultViewport,
+        args: [
+          ...chromium.args,
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--single-process",
+          "--no-zygote",
+          "--disable-dev-shm-usage",
+        ],
+      });
+    } catch (error) {
+      // If launch fails, reset the promise so the next request can try again
+      browserPromise = null;
+      console.error("❌ Failed to launch browser:", error);
+      throw error;
+    }
+  })();
 
   return browserPromise;
 }
@@ -61,9 +72,10 @@ const generateTextTemplate = ({ headline, summary, tag, date }) => `
       flex-direction: column;
       justify-content: center;
     }
-    .tag { color: #60a5fa; letter-spacing: 3px; }
-    h1 { font-size: 72px; margin: 20px 0; }
-    p { font-size: 28px; line-height: 1.4; color: #e5e7eb; }
+    .tag { color: #60a5fa; letter-spacing: 3px; font-weight: 800; text-transform: uppercase; }
+    h1 { font-size: 72px; margin: 20px 0; line-height: 1.1; }
+    p { font-size: 28px; line-height: 1.5; color: #e5e7eb; }
+    small { margin-top: 20px; color: #9ca3af; font-size: 20px; }
   </style>
 </head>
 <body>
@@ -90,19 +102,21 @@ const generateImageTemplate = ({ headline, summary, tag, imageUrl }) => {
       height: 1350px;
       margin: 0;
       padding: 80px;
-      background: url('${safeUrl}') center / cover no-repeat;
+      background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('${safeUrl}') center / cover no-repeat;
       font-family: 'Inter', sans-serif;
       color: white;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
+      box-sizing: border-box;
     }
-    h1 { font-size: 64px; text-transform: uppercase; }
-    p { font-size: 30px; }
+    .tag { font-weight: 700; color: #60a5fa; margin-bottom: 10px; }
+    h1 { font-size: 64px; text-transform: uppercase; margin: 10px 0; line-height: 1; }
+    p { font-size: 30px; margin-bottom: 40px; }
   </style>
 </head>
 <body>
-  <div>${tag || "NEWS"}</div>
+  <div class="tag">${tag || "NEWS"}</div>
   <h1>${headline}</h1>
   <p>${summary}</p>
 </body>
@@ -164,9 +178,12 @@ app.post("/generate-image", async (req, res) => {
       timeout: 60000,
     });
 
+    // Wait for fonts to ensure text looks professional
     try {
       await page.waitForFunction("document.fonts.ready", { timeout: 5000 });
-    } catch (_) {}
+    } catch (_) {
+      console.warn("⚠️ Font loading timed out, proceeding with fallback fonts.");
+    }
 
     const image = await page.screenshot({ type: "png" });
 
@@ -190,13 +207,22 @@ app.post("/generate-image", async (req, res) => {
 ====================================================== */
 
 app.get("/", (_, res) => {
-  res.send("✅ Image generation server is running");
+  res.send("✅ Image generation server is active and warm.");
 });
 
 /* ======================================================
-   START SERVER
+   START SERVER & WARM UP
 ====================================================== */
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  
+  // Warm up the browser immediately on deployment
+  try {
+    console.log("⚙️  Performing cold start warm-up...");
+    await getBrowser();
+    console.log("✨ Chromium initialized and ready for requests.");
+  } catch (err) {
+    console.error("⚠️ Warm-up failed. Chromium will try to initialize on the first request.");
+  }
 });
