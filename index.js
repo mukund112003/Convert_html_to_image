@@ -111,6 +111,22 @@ const generateImageTemplate = ({ headline, summary, tag, imageUrl }) => {
 // ==========================================
 // API ENDPOINT
 // ==========================================
+
+let browserPromise = null;
+
+async function getBrowser() {
+  if (!browserPromise) {
+    browserPromise = puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  }
+  return browserPromise;
+}
+
+
 app.post('/generate-image', async (req, res) => {
   let browser = null;
   console.log("Generating image...");
@@ -140,20 +156,7 @@ app.post('/generate-image', async (req, res) => {
       shouldUseNetworkWait = false; // <--- UPDATED: Text only can use fast wait
     }
 
-  browser = await puppeteer.launch({
-  args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
-  executablePath: await chromium.executablePath(),
-  headless: chromium.headless
-});
-
-
-    // browser = await puppeteer.launch({ 
-    //     headless: "new",
-    //     executablePath: puppeteer.executablePath(),
-    //     args: ['--no-sandbox', '--disable-setuid-sandbox']
-    // });
-
+    browser = await getBrowser();
     const page = await browser.newPage();
     await page.setViewport({ width: viewportWidth, height: viewportHeight, deviceScaleFactor: scale });
 
@@ -196,7 +199,7 @@ app.post('/generate-image', async (req, res) => {
       res.status(500).json({ error: "Failed to generate image", details: error.message });
     }
   } finally {
-    if (browser) await browser.close();
+    if (browser) await page.close();
   }
 });
 
