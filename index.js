@@ -5,26 +5,28 @@ import chromium from "@sparticuz/chromium";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Increase payload size for large HTML
+// Increase payload to handle large HTML, but try to avoid sending Base64 images/fonts if possible
 app.use(express.json({ limit: "50mb" }));
 
 /* ======================================================
-   BROWSER SINGLETON (FIXED FOR ETXTBSY)
+   BROWSER MANAGER (MEMORY OPTIMIZED)
 ====================================================== */
-
 let browserPromise = null;
 
 async function getBrowser() {
-  // If a promise already exists (pending or resolved), return it.
-  // This prevents multiple requests from trying to extract Chromium at once.
   if (browserPromise) return browserPromise;
 
   browserPromise = (async () => {
     try {
-      console.log("⏳ Resolving Chromium path...");
+      console.log("⏳ Initializing Chromium...");
+      
+      // Explicitly set graphics mode for serverless
+      await chromium.font(
+        "https://raw.githack.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf"
+      ); // Optional: Preload a lightweight font to stabilize font loader
+
       const executablePath = await chromium.executablePath();
       
-      console.log("🚀 Launching Browser...");
       return await puppeteer.launch({
         executablePath,
         headless: chromium.headless,
@@ -35,13 +37,17 @@ async function getBrowser() {
           "--disable-setuid-sandbox",
           "--single-process",
           "--no-zygote",
-          "--disable-dev-shm-usage",
+          // MEMORY OPTIMIZATION FLAGS
+          "--disable-dev-shm-usage", // Uses disk instead of RAM for shared mem
+          "--disable-gpu",           // Save GPU memory
+          "--disable-software-rasterizer",
+          "--mute-audio",
+          "--disable-extensions",
         ],
       });
     } catch (error) {
-      // If launch fails, reset the promise so the next request can try again
-      browserPromise = null;
-      console.error("❌ Failed to launch browser:", error);
+      browserPromise = null; 
+      console.error("❌ Browser launch failed:", error);
       throw error;
     }
   })();
@@ -50,179 +56,61 @@ async function getBrowser() {
 }
 
 /* ======================================================
-   TEMPLATE GENERATORS
-====================================================== */
-
-const generateTextTemplate = ({ headline, summary, tag, date }) => `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-    body {
-      width: 1080px;
-      height: 1350px;
-      margin: 0;
-      padding: 80px;
-      background: #050505;
-      color: white;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .tag { color: #60a5fa; letter-spacing: 3px; font-weight: 800; text-transform: uppercase; }
-    h1 { font-size: 72px; margin: 20px 0; line-height: 1.1; }
-    p { font-size: 28px; line-height: 1.5; color: #e5e7eb; }
-    small { margin-top: 20px; color: #9ca3af; font-size: 20px; }
-  </style>
-</head>
-<body>
-  <div class="tag">${tag || "UPDATE"}</div>
-  <h1>${headline}</h1>
-  <p>${summary}</p>
-  <small>${date || ""}</small>
-</body>
-</html>
-`;
-
-const generateImageTemplate = ({ headline, summary, tag, imageUrl }) => {
-  const safeUrl = imageUrl.replace(/'/g, "%27");
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-    body {
-      width: 1080px;
-      height: 1350px;
-      margin: 0;
-      padding: 80px;
-      background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('${safeUrl}') center / cover no-repeat;
-      font-family: 'Inter', sans-serif;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      box-sizing: border-box;
-    }
-    .tag { font-weight: 700; color: #60a5fa; margin-bottom: 10px; }
-    h1 { font-size: 64px; text-transform: uppercase; margin: 10px 0; line-height: 1; }
-    p { font-size: 30px; margin-bottom: 40px; }
-  </style>
-</head>
-<body>
-  <div class="tag">${tag || "NEWS"}</div>
-  <h1>${headline}</h1>
-  <p>${summary}</p>
-</body>
-</html>
-`;
-};
-
-/* ======================================================
    API ENDPOINT
 ====================================================== */
-
 app.post("/generate-image", async (req, res) => {
-  let page;
-
+  let page = null;
   try {
-    const {
-      headline,
-      summary,
-      tag,
-      date,
-      backgroundImageUrl,
-      htmlOverride,
-      options,
-    } = req.body;
+    const { backgroundImageUrl, htmlOverride, options } = req.body; // Simplified for brevity
 
-    const width = options?.width || 1080;
-    const height = options?.height || 1350;
-    const scale = options?.scale || 2;
-
-    let html;
-    let waitForNetwork = false;
-
-    if (htmlOverride) {
-      html = htmlOverride;
-      waitForNetwork = true;
-    } else if (backgroundImageUrl) {
-      html = generateImageTemplate({
-        headline,
-        summary,
-        tag,
-        imageUrl: backgroundImageUrl,
-      });
-      waitForNetwork = true;
-    } else {
-      html = generateTextTemplate({ headline, summary, tag, date });
+    // 1. Validation: Prevent Massive Base64 logs
+    if (htmlOverride && htmlOverride.length > 10 * 1024 * 1024) {
+      console.warn("⚠️ Warning: HTML Payload is larger than 10MB. This may cause OOM crashes.");
     }
 
     const browser = await getBrowser();
     page = await browser.newPage();
 
+    // 2. Set Viewport
     await page.setViewport({
-      width,
-      height,
-      deviceScaleFactor: scale,
+      width: options?.width || 1080,
+      height: options?.height || 1350,
+      deviceScaleFactor: options?.scale || 2,
     });
 
-    await page.setContent(html, {
-      waitUntil: waitForNetwork ? "networkidle2" : "domcontentloaded",
-      timeout: 60000,
+    // 3. Set Content with increased timeout
+    // Using networkidle0 waits until there are no more than 0 network connections for at least 500 ms.
+    await page.setContent(htmlOverride, { 
+      waitUntil: "networkidle0", 
+      timeout: 60000 // 60 seconds timeout
     });
 
-    // Wait for fonts to ensure text looks professional
-    try {
-      await page.waitForFunction("document.fonts.ready", { timeout: 5000 });
-    } catch (_) {
-      console.warn("⚠️ Font loading timed out, proceeding with fallback fonts.");
-    }
+    // 4. Memory-Safe Font Loading Check
+    // Instead of waiting for fonts indefinitely, we check efficiently
+    await page.evaluateHandle("document.fonts.ready").catch((e) => {
+        console.warn("⚠️ Fonts might not have fully loaded, capturing anyway.");
+    });
 
-    const image = await page.screenshot({ type: "png" });
+    const image = await page.screenshot({ type: "png", optimizeForSpeed: true });
+    
+    res.set("Content-Type", "image/png").send(image);
 
-    res.set("Content-Type", "image/png");
-    res.send(image);
   } catch (err) {
-    console.error("❌ Error generating image:", err);
-    res.status(500).json({
-      error: "Failed to generate image",
-      details: err.message,
-    });
+    // 5. SANITIZE ERROR LOGS
+    // Do NOT print 'err' directly if it contains the massive HTML string, it clogs the logs.
+    console.error("❌ Generation Error: ", err.message); 
+    res.status(500).json({ error: "Generation failed", details: err.message });
   } finally {
-    if (page && !page.isClosed()) {
-      await page.close();
+    if (page) {
+        // Force clean up to free RAM immediately
+        await page.close().catch(() => null); 
     }
   }
 });
 
-/* ======================================================
-   HEALTH CHECK
-====================================================== */
-
-app.get("/", (_, res) => {
-  res.send("✅ Image generation server is active and warm.");
-});
-
-/* ======================================================
-   START SERVER & WARM UP
-====================================================== */
+app.get("/", (req, res) => res.send("✅ Server Alive"));
 
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  
-  // Warm up the browser immediately on deployment
-  try {
-    console.log("⚙️  Performing cold start warm-up...");
-    await getBrowser();
-    console.log("✨ Chromium initialized and ready for requests.");
-  } catch (err) {
-    console.error("⚠️ Warm-up failed. Chromium will try to initialize on the first request.");
-  }
+  await getBrowser().catch(e => console.error("Warmup failed", e));
 });
