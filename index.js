@@ -5,49 +5,264 @@ import chromium from "@sparticuz/chromium";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Increase payload to handle large HTML, but try to avoid sending Base64 images/fonts if possible
-app.use(express.json({ limit: "50mb" }));
+// Limit payload size to prevent memory overflow
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 /* ======================================================
-   BROWSER MANAGER (MEMORY OPTIMIZED)
+   HTML TEMPLATES (Memory-efficient inline templates)
+====================================================== */
+
+// Template 1: Text-only (gradient background)
+const TEXT_ONLY_TEMPLATE = (data) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 24px;
+      padding: 60px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .tag {
+      display: inline-block;
+      background: ${data.tagColor || '#10b981'};
+      color: white;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+    }
+    .headline {
+      font-size: 52px;
+      font-weight: 800;
+      color: #1f2937;
+      margin: 24px 0;
+      line-height: 1.2;
+      word-wrap: break-word;
+    }
+    .summary {
+      font-size: 24px;
+      color: #6b7280;
+      line-height: 1.6;
+      margin: 24px 0;
+      word-wrap: break-word;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 2px solid #e5e7eb;
+    }
+    .date {
+      font-size: 16px;
+      color: #9ca3af;
+      font-weight: 500;
+    }
+    .branding {
+      font-size: 16px;
+      color: #667eea;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    ${data.tag ? `<span class="tag">${data.tag}</span>` : ''}
+    <h1 class="headline">${data.headline || 'Your Headline Here'}</h1>
+    ${data.summary ? `<p class="summary">${data.summary}</p>` : ''}
+    <div class="footer">
+      <div class="date">${data.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      ${data.branding ? `<div class="branding">${data.branding}</div>` : ''}
+    </div>
+  </div>
+</body>
+</html>`;
+
+// Template 2: Background image with text overlay
+const BG_IMAGE_TEMPLATE = (data) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      overflow: hidden;
+    }
+    .bg-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      background-image: url('${data.backgroundImageUrl}');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 60px;
+    }
+    .tag {
+      display: inline-block;
+      background: ${data.tagColor || 'rgba(16, 185, 129, 0.9)'};
+      color: white;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      width: fit-content;
+    }
+    .headline {
+      font-size: 56px;
+      font-weight: 800;
+      color: white;
+      margin: 20px 0;
+      line-height: 1.2;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      word-wrap: break-word;
+      max-width: 90%;
+    }
+    .summary {
+      font-size: 26px;
+      color: rgba(255, 255, 255, 0.95);
+      line-height: 1.6;
+      margin: 20px 0;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      word-wrap: break-word;
+      max-width: 85%;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 30px;
+    }
+    .date {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 500;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .branding {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-container">
+    <div class="overlay">
+      ${data.tag ? `<span class="tag">${data.tag}</span>` : ''}
+      <h1 class="headline">${data.headline || 'Your Headline Here'}</h1>
+      ${data.summary ? `<p class="summary">${data.summary}</p>` : ''}
+      <div class="footer">
+        <div class="date">${data.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        ${data.branding ? `<div class="branding">${data.branding}</div>` : ''}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+/* ======================================================
+   BROWSER MANAGER (OPTIMIZED FOR LOW MEMORY)
 ====================================================== */
 let browserPromise = null;
+let lastActivityTime = Date.now();
+const BROWSER_IDLE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 async function getBrowser() {
-  if (browserPromise) return browserPromise;
+  if (browserPromise) {
+    lastActivityTime = Date.now();
+    return browserPromise;
+  }
 
   browserPromise = (async () => {
     try {
-      console.log("⏳ Initializing Chromium...");
+      console.log("🚀 Launching Chromium...");
       
-      // Explicitly set graphics mode for serverless
-      await chromium.font(
-        "https://raw.githack.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf"
-      ); // Optional: Preload a lightweight font to stabilize font loader
-
       const executablePath = await chromium.executablePath();
       
-      return await puppeteer.launch({
+      const browser = await puppeteer.launch({
         executablePath,
         headless: chromium.headless,
-        defaultViewport: chromium.defaultViewport,
         args: [
           ...chromium.args,
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--single-process",
           "--no-zygote",
-          // MEMORY OPTIMIZATION FLAGS
-          "--disable-dev-shm-usage", // Uses disk instead of RAM for shared mem
-          "--disable-gpu",           // Save GPU memory
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
           "--disable-software-rasterizer",
-          "--mute-audio",
+          "--disable-dev-tools",
           "--disable-extensions",
+          "--disable-background-networking",
+          "--disable-sync",
+          "--disable-translate",
+          "--hide-scrollbars",
+          "--mute-audio",
+          "--no-first-run",
+          "--disable-infobars",
+          "--disable-breakpad",
+          "--disable-canvas-aa",
+          "--disable-2d-canvas-clip-aa",
+          "--disable-gl-drawing-for-tests",
+          "--disable-background-timer-throttling",
+          "--disable-renderer-backgrounding",
+          "--disable-backgrounding-occluded-windows",
         ],
+        defaultViewport: {
+          width: 1080,
+          height: 1350,
+        },
       });
+
+      console.log("✅ Browser launched successfully");
+      return browser;
     } catch (error) {
-      browserPromise = null; 
-      console.error("❌ Browser launch failed:", error);
+      browserPromise = null;
+      console.error("❌ Browser launch failed:", error.message);
       throw error;
     }
   })();
@@ -55,62 +270,223 @@ async function getBrowser() {
   return browserPromise;
 }
 
+// Cleanup idle browser to free memory
+setInterval(async () => {
+  if (browserPromise && Date.now() - lastActivityTime > BROWSER_IDLE_TIMEOUT) {
+    try {
+      console.log("🧹 Closing idle browser...");
+      const browser = await browserPromise;
+      await browser.close();
+      browserPromise = null;
+      console.log("✅ Browser closed");
+    } catch (err) {
+      console.error("❌ Error closing browser:", err.message);
+      browserPromise = null;
+    }
+  }
+}, 60000); // Check every minute
+
 /* ======================================================
-   API ENDPOINT
+   HELPER FUNCTIONS
 ====================================================== */
+
+// Sanitize text to prevent XSS
+function sanitizeText(text) {
+  if (typeof text !== 'string') return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Determine which template to use
+function selectTemplate(data) {
+  if (data.htmlOverride) {
+    return data.htmlOverride;
+  }
+  
+  // Sanitize inputs
+  const sanitizedData = {
+    headline: sanitizeText(data.headline),
+    summary: sanitizeText(data.summary),
+    tag: sanitizeText(data.tag),
+    date: data.date === 'NOW' 
+      ? new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : sanitizeText(data.date),
+    branding: sanitizeText(data.branding),
+    tagColor: data.tagColor,
+    backgroundImageUrl: data.backgroundImageUrl,
+  };
+
+  // Use background template if background image is provided
+  if (data.backgroundImageUrl) {
+    return BG_IMAGE_TEMPLATE(sanitizedData);
+  }
+
+  // Default to text-only template
+  return TEXT_ONLY_TEMPLATE(sanitizedData);
+}
+
+/* ======================================================
+   API ENDPOINTS
+====================================================== */
+
 app.post("/generate-image", async (req, res) => {
   let page = null;
+  const startTime = Date.now();
+  
   try {
-    const { backgroundImageUrl, htmlOverride, options } = req.body; // Simplified for brevity
+    const {
+      headline,
+      summary,
+      tag,
+      date,
+      branding,
+      tagColor,
+      backgroundImageUrl,
+      htmlOverride,
+      options = {},
+    } = req.body;
 
-    // 1. Validation: Prevent Massive Base64 logs
-    if (htmlOverride && htmlOverride.length > 10 * 1024 * 1024) {
-      console.warn("⚠️ Warning: HTML Payload is larger than 10MB. This may cause OOM crashes.");
+    // Validate required fields
+    if (!headline && !htmlOverride) {
+      return res.status(400).json({ 
+        error: "Missing required field: 'headline' or 'htmlOverride'" 
+      });
     }
+
+    // Generate HTML
+    const html = selectTemplate({
+      headline,
+      summary,
+      tag,
+      date,
+      branding,
+      tagColor,
+      backgroundImageUrl,
+      htmlOverride,
+    });
+
+    // Size check
+    const htmlSize = Buffer.byteLength(html, 'utf8');
+    if (htmlSize > 5 * 1024 * 1024) { // 5MB limit
+      return res.status(413).json({ 
+        error: "HTML content too large",
+        maxSize: "5MB",
+        currentSize: `${(htmlSize / 1024 / 1024).toFixed(2)}MB`
+      });
+    }
+
+    console.log(`📄 Rendering (${(htmlSize / 1024).toFixed(2)}KB)`);
 
     const browser = await getBrowser();
     page = await browser.newPage();
 
-    // 2. Set Viewport
+    // Configure viewport
     await page.setViewport({
-      width: options?.width || 1080,
-      height: options?.height || 1350,
-      deviceScaleFactor: options?.scale || 2,
+      width: options.width || 1080,
+      height: options.height || 1350,
+      deviceScaleFactor: options.scale || 2,
     });
 
-    // 3. Set Content with increased timeout
-    // Using networkidle0 waits until there are no more than 0 network connections for at least 500 ms.
-    await page.setContent(htmlOverride, { 
-      waitUntil: "networkidle0", 
-      timeout: 60000 // 60 seconds timeout
+    // Set content with timeout
+    await page.setContent(html, { 
+      waitUntil: "networkidle2", // More lenient than networkidle0
+      timeout: 30000, // 30 seconds
     });
 
-    // 4. Memory-Safe Font Loading Check
-    // Instead of waiting for fonts indefinitely, we check efficiently
-    await page.evaluateHandle("document.fonts.ready").catch((e) => {
-        console.warn("⚠️ Fonts might not have fully loaded, capturing anyway.");
+    // Wait for fonts (with timeout)
+    await Promise.race([
+      page.evaluateHandle("document.fonts.ready"),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]).catch(() => console.warn("⚠️ Font loading timeout"));
+
+    // Capture screenshot
+    const image = await page.screenshot({ 
+      type: "png",
+      optimizeForSpeed: true,
     });
 
-    const image = await page.screenshot({ type: "png", optimizeForSpeed: true });
-    
-    res.set("Content-Type", "image/png").send(image);
+    const duration = Date.now() - startTime;
+    console.log(`✅ Image generated in ${duration}ms (${(image.length / 1024).toFixed(2)}KB)`);
+
+    res.set({
+      "Content-Type": "image/png",
+      "Content-Length": image.length,
+      "X-Generation-Time": `${duration}ms`,
+    }).send(image);
 
   } catch (err) {
-    // 5. SANITIZE ERROR LOGS
-    // Do NOT print 'err' directly if it contains the massive HTML string, it clogs the logs.
-    console.error("❌ Generation Error: ", err.message); 
-    res.status(500).json({ error: "Generation failed", details: err.message });
+    const duration = Date.now() - startTime;
+    console.error(`❌ Generation failed after ${duration}ms:`, err.message);
+    
+    res.status(500).json({ 
+      error: "Image generation failed",
+      message: err.message,
+      duration: `${duration}ms`,
+    });
   } finally {
     if (page) {
-        // Force clean up to free RAM immediately
-        await page.close().catch(() => null); 
+      await page.close().catch(() => null);
+      console.log("🧹 Page closed");
     }
   }
 });
 
-app.get("/", (req, res) => res.send("✅ Server Alive"));
+// Health check endpoint
+app.get("/health", async (req, res) => {
+  const memUsage = process.memoryUsage();
+  res.json({
+    status: "healthy",
+    browserReady: !!browserPromise,
+    memory: {
+      rss: `${(memUsage.rss / 1024 / 1024).toFixed(2)}MB`,
+      heapUsed: `${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`,
+      heapTotal: `${(memUsage.heapTotal / 1024 / 1024).toFixed(2)}MB`,
+    },
+    uptime: `${Math.floor(process.uptime())}s`,
+  });
+});
 
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({
+    service: "HTML to Image Converter",
+    status: "online",
+    endpoints: {
+      generate: "POST /generate-image",
+      health: "GET /health",
+    },
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("💥 Unhandled error:", err.message);
+  res.status(500).json({ error: "Internal server error" });
+});
+
+/* ======================================================
+   SERVER STARTUP
+====================================================== */
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  await getBrowser().catch(e => console.error("Warmup failed", e));
+  console.log(`📊 Memory: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB`);
+  
+  // Warm up browser in background
+  getBrowser()
+    .then(() => console.log("🔥 Browser warmed up"))
+    .catch((e) => console.error("❌ Warmup failed:", e.message));
+});
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("🛑 SIGTERM received, shutting down gracefully...");
+  if (browserPromise) {
+    const browser = await browserPromise;
+    await browser.close();
+  }
+  process.exit(0);
 });
