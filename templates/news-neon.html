@@ -1,19 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <style>
         /* --- Glamour Variables --- */
         :root {
             --bg: #020617;
-            --neon-primary: #00f2ff; /* Cyan */
-            --neon-secondary: #7000ff; /* Deep Purple */
+            --neon-primary: #00f2ff;
+            /* Cyan */
+            --neon-secondary: #7000ff;
+            /* Deep Purple */
             --text-main: #ffffff;
             --text-muted: #94a3b8;
             --glass: rgba(255, 255, 255, 0.03);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             width: 1080px;
@@ -32,7 +39,7 @@
             padding: 70px;
             display: flex;
             flex-direction: column;
-            background: 
+            background:
                 radial-gradient(circle at 10% 10%, rgba(0, 242, 255, 0.1) 0%, transparent 40%),
                 radial-gradient(circle at 90% 90%, rgba(112, 0, 255, 0.15) 0%, transparent 40%);
         }
@@ -44,7 +51,7 @@
             left: -50%;
             width: 200%;
             height: 60%;
-            background-image: 
+            background-image:
                 linear-gradient(var(--neon-secondary) 1px, transparent 1px),
                 linear-gradient(90deg, var(--neon-secondary) 1px, transparent 1px);
             background-size: 80px 80px;
@@ -88,7 +95,8 @@
             flex-direction: column;
             justify-content: center;
             z-index: 10;
-            margin-top: -50px; /* Slight offset for better visual balance */
+            margin-top: -50px;
+            /* Slight offset for better visual balance */
         }
 
         /* Slide 1: Cover Style */
@@ -118,7 +126,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 60px;
             border-radius: 24px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
         }
 
         .card-header {
@@ -144,7 +152,7 @@
             justify-content: space-between;
             align-items: center;
             padding-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 10;
         }
 
@@ -174,9 +182,12 @@
         }
 
         /* --- Logic to Hide Unused Elements --- */
-        .hide-me { display: none !important; }
+        .hide-me {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="stage">
@@ -188,7 +199,7 @@
         </div>
 
         <div class="main-content">
-            
+
             <div id="cover-group">
                 <h1 id="headline" class="hero-headline">{{headline}}</h1>
                 <p id="subheadline" class="hero-sub">{{subheadline}}</p>
@@ -206,42 +217,53 @@
             <div id="footer-text" class="cta-text">{{footer}}</div>
         </div>
     </div>
-
+{{{{raw}}}}
     <script>
-        /**
-         * Handlebars renders the {{vars}}, but if the data is null or empty, 
-         * we need to hide the containers so they don't take up space.
+        /** * Using Handlebars raw blocks to prevent the engine from 
+         * parsing the JavaScript logic.
          */
         function cleanUI() {
             const data = {
-                tag: `{{type}}`,
-                headline: `{{headline}}`,
-                subheadline: `{{subheadline}}`,
-                header: `{{header}}`,
-                body: `{{body}}`,
-                footer: `{{footer}}`
+                tag: "{{type}}",
+                headline: "{{headline}}",
+                subheadline: "{{subheadline}}",
+                header: "{{header}}",
+                body: "{{body}}",
+                footer: "{{footer}}"
             };
 
-            // Hide individual text elements if empty
             Object.keys(data).forEach(key => {
                 const el = document.getElementById(key === 'footer' ? 'footer-text' : key);
-                if (!data[key] || data[key].includes('{{') || data[key] === 'null' || data[key] === '') {
-                    el.classList.add('hide-me');
+
+                const val = data[key];
+                // Check for empty values or unreplaced Handlebars tags
+                if (!val || val.includes('{{') || val === 'null' || val === 'undefined' || val.trim() === '') {
+                    if (el) el.classList.add('hide-me');
                 }
             });
 
-            // Hide the entire Cover Group if no headline exists
-            if (!data.headline || data.headline.includes('{{')) {
-                document.getElementById('cover-group').classList.add('hide-me');
+            // Specific Layout Logic: Hide groups if their primary content is missing
+            const hasHeadline = data.headline && !data.headline.includes('{{') && data.headline !== 'null' && data.headline.trim() !== '';
+            if (!hasHeadline) {
+                const cov = document.getElementById('cover-group');
+                if (cov) cov.classList.add('hide-me');
             }
 
-            // Hide the entire Content Card if no header/body exists
-            if ((!data.header || data.header.includes('{{')) && (!data.body || data.body.includes('{{'))) {
-                document.getElementById('content-group').classList.add('hide-me');
+            const hasHeader = data.header && !data.header.includes('{{') && data.header !== 'null' && data.header.trim() !== '';
+            const hasBody = data.body && !data.body.includes('{{') && data.body !== 'null' && data.body.trim() !== '';
+            
+            if (!hasHeader && !hasBody) {
+                const con = document.getElementById('content-group');
+                if (con) con.classList.add('hide-me');
             }
         }
 
         window.onload = cleanUI;
     </script>
+    {{{{/raw}}}}
 </body>
+
+</html>
+</body>
+
 </html>

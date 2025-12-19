@@ -1,9 +1,13 @@
 import express from "express";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import fs from "fs/promises"; // For reading files
+import path from "path";
+import handlebars from "handlebars";
+
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; 
 
 // Limit payload size to prevent memory overflow
 app.use(express.json({ limit: "10mb" }));
@@ -337,7 +341,8 @@ async function getRenderedHtml(templateName, data) {
   try {
     // 1. Construct the file path
     const filePath = path.join(process.cwd(), 'templates', `${templateName}.html`);
-
+  
+    console.log(filePath)
     // 2. Read the HTML file
     const templateSource = await fs.readFile(filePath, 'utf-8');
 
