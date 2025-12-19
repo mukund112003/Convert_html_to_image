@@ -220,9 +220,9 @@ async function getBrowser() {
   browserPromise = (async () => {
     try {
       console.log("🚀 Launching Chromium...");
-      
+
       const executablePath = await chromium.executablePath();
-      
+
       const browser = await puppeteer.launch({
         executablePath,
         headless: chromium.headless,
@@ -306,13 +306,13 @@ function selectTemplate(data) {
   if (data.htmlOverride) {
     return data.htmlOverride;
   }
-  
+
   // Sanitize inputs
   const sanitizedData = {
     headline: sanitizeText(data.headline),
     summary: sanitizeText(data.summary),
     tag: sanitizeText(data.tag),
-    date: data.date === 'NOW' 
+    date: data.date === 'NOW'
       ? new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
       : sanitizeText(data.date),
     branding: sanitizeText(data.branding),
@@ -329,6 +329,30 @@ function selectTemplate(data) {
   return TEXT_ONLY_TEMPLATE(sanitizedData);
 }
 
+
+/* ======================================================
+   TEMPLATE ENGINE LOADER
+====================================================== */
+async function getRenderedHtml(templateName, data) {
+  try {
+    // 1. Construct the file path
+    const filePath = path.join(process.cwd(), 'templates', `${templateName}.html`);
+
+    // 2. Read the HTML file
+    const templateSource = await fs.readFile(filePath, 'utf-8');
+
+    // 3. Compile with Handlebars
+    const template = handlebars.compile(templateSource);
+
+    // 4. Return HTML with injected data
+    return template(data);
+  } catch (error) {
+    console.error(`Error loading template ${templateName}:`, error.message);
+    throw new Error(`Template '${templateName}' not found or invalid.`);
+  }
+}
+
+
 /* ======================================================
    API ENDPOINTS
 ====================================================== */
@@ -336,43 +360,25 @@ function selectTemplate(data) {
 app.post("/generate-image", async (req, res) => {
   let page = null;
   const startTime = Date.now();
-  
+
   try {
     const {
-      headline,
-      summary,
-      tag,
-      date,
-      branding,
-      tagColor,
-      backgroundImageUrl,
-      htmlOverride,
+      templateName, // <--- New field: e.g., "news-neon"
+      data,         // <--- New field: Object containing headline, body, etc.
       options = {},
     } = req.body;
 
-    // Validate required fields
-    if (!headline && !htmlOverride) {
-      return res.status(400).json({ 
-        error: "Missing required field: 'headline' or 'htmlOverride'" 
-      });
+if (!templateName || !data) {
+      return res.status(400).json({ error: "Missing 'templateName' or 'data' object" });
     }
 
     // Generate HTML
-    const html = selectTemplate({
-      headline,
-      summary,
-      tag,
-      date,
-      branding,
-      tagColor,
-      backgroundImageUrl,
-      htmlOverride,
-    });
+const html = await getRenderedHtml(templateName, data);
 
     // Size check
     const htmlSize = Buffer.byteLength(html, 'utf8');
     if (htmlSize > 5 * 1024 * 1024) { // 5MB limit
-      return res.status(413).json({ 
+      return res.status(413).json({
         error: "HTML content too large",
         maxSize: "5MB",
         currentSize: `${(htmlSize / 1024 / 1024).toFixed(2)}MB`
@@ -392,7 +398,7 @@ app.post("/generate-image", async (req, res) => {
     });
 
     // Set content with timeout
-    await page.setContent(html, { 
+    await page.setContent(html, {
       waitUntil: "networkidle2", // More lenient than networkidle0
       timeout: 30000, // 30 seconds
     });
@@ -404,7 +410,7 @@ app.post("/generate-image", async (req, res) => {
     ]).catch(() => console.warn("⚠️ Font loading timeout"));
 
     // Capture screenshot
-    const image = await page.screenshot({ 
+    const image = await page.screenshot({
       type: "png",
       optimizeForSpeed: true,
     });
@@ -421,8 +427,8 @@ app.post("/generate-image", async (req, res) => {
   } catch (err) {
     const duration = Date.now() - startTime;
     console.error(`❌ Generation failed after ${duration}ms:`, err.message);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: "Image generation failed",
       message: err.message,
       duration: `${duration}ms`,
@@ -474,7 +480,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Memory: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB`);
-  
+
   // Warm up browser in background
   getBrowser()
     .then(() => console.log("🔥 Browser warmed up"))

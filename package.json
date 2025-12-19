@@ -5,7 +5,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
-    
   },
   "keywords": [],
   "author": "",
@@ -13,9 +12,9 @@
   "type": "module",
   "description": "",
   "dependencies": {
-  "express": "^4.19.2",
-  "puppeteer-core": "^24.3.0",
-  "@sparticuz/chromium": "^123.0.0"
-}
-
+    "@sparticuz/chromium": "^123.0.0",
+    "express": "^4.19.2",
+    "handlebars": "^4.7.8",
+    "puppeteer-core": "^24.3.0"
+  }
 }
