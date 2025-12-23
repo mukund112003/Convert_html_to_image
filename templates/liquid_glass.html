@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- Liquid Glass Variables --- */
+        :root {
+            --bg-deep: #0f0c29;
+            --blob-1: #ff00cc;   /* Magenta */
+            --blob-2: #333399;   /* Deep Blue */
+            --blob-3: #00d4ff;   /* Cyan */
+            
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.85);
+            
+            /* Glass Styles */
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-shine: rgba(255, 255, 255, 0.1);
+            --shadow-soft: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            width: 1080px;
+            height: 1350px;
+            background-color: var(--bg-deep);
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- 1. Background Liquid Layer --- */
+        .liquid-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+            overflow: hidden;
+        }
+
+        /* Organic Blobs */
+        .blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.8;
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .blob-1 {
+            width: 700px; height: 700px;
+            background: var(--blob-1);
+            top: -150px; left: -150px;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        .blob-2 {
+            width: 600px; height: 600px;
+            background: var(--blob-3);
+            bottom: -100px; right: -100px;
+            animation: float 12s ease-in-out infinite reverse;
+        }
+
+        .blob-3 {
+            width: 400px; height: 400px;
+            background: var(--blob-2);
+            top: 40%; left: 30%;
+            opacity: 0.6;
+            animation: pulse 8s ease-in-out infinite;
+        }
+        
+        /* Noise Texture Overlay for that 'Premium' feel */
+        .noise-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://grainy-gradients.vercel.app/noise.svg');
+            opacity: 0.05;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* --- 2. Main Glass Stage --- */
+        .glass-stage {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            padding: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* --- 3. Top Navigation --- */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-pill {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 12px 35px;
+            border-radius: 50px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 20px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        .slide-indicator {
+            font-size: 28px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.6);
+            background: rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* --- 4. Main Content Area --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px 0;
+        }
+
+        /* Slide 1: Cover Typography */
+        .hero-group {
+            position: relative;
+        }
+
+        .hero-headline {
+            font-size: 105px;
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -2px;
+            margin-bottom: 40px;
+            /* Subtle text gradient */
+            background: linear-gradient(to right, #fff 20%, #e0e0e0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+        }
+
+        .hero-sub {
+            font-size: 42px;
+            font-weight: 300;
+            color: var(--text-muted);
+            border-left: 6px solid var(--blob-3);
+            padding-left: 30px;
+            line-height: 1.3;
+        }
+
+        /* Slide 2-4: The Nested Glass Card */
+        .content-card {
+            background: rgba(0, 0, 0, 0.2); /* Darker internal glass */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.3); /* Top highlight */
+            border-left: 1px solid rgba(255, 255, 255, 0.3); /* Left highlight */
+            padding: 70px;
+            border-radius: 40px;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Add a sheen reflection to the card */
+        .content-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .card-header {
+            font-size: 60px;
+            font-weight: 800;
+            margin-bottom: 35px;
+            line-height: 1.1;
+            color: #fff;
+        }
+
+        .card-body {
+            font-size: 38px;
+            line-height: 1.6;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.9);
+            white-space: pre-wrap;
+        }
+
+        /* --- 5. Footer --- */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .handle {
+            font-weight: 500;
+            font-size: 24px;
+            color: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .handle-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--blob-1), var(--blob-2));
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-size: 14px;
+        }
+
+        .cta-text {
+            color: var(--blob-3);
+            font-weight: 800;
+            font-size: 26px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+        }
+
+        /* --- Logic Utilities --- */
+        .hide-me { display: none !important; }
+
+        /* Animations for "Static" Screenshots - optional but adds life if viewed in browser */
+        @keyframes float {
+            0% { transform: translate(0px, 0px); }
+            50% { transform: translate(30px, 50px); }
+            100% { transform: translate(0px, 0px); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 0.6; }
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="liquid-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+        <div class="noise-overlay"></div>
+    </div>
+
+    <div class="glass-stage">
+
+        <div class="top-nav">
+            <div id="tag" class="category-pill">{{type}}</div>
+            <div class="slide-indicator">{{slide_number}}/4</div>
+        </div>
+
+        <div class="main-content">
+
+            <div id="cover-group" class="hero-group">
+                <h1 id="headline" class="hero-headline">{{headline}}</h1>
+                <p id="subheadline" class="hero-sub">{{subheadline}}</p>
+            </div>
+
+            <div id="content-group" class="content-card">
+                <h2 id="header" class="card-header">{{header}}</h2>
+                <div id="body" class="card-body">{{body}}</div>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <div class="handle">
+                <div class="handle-icon">IG</div>
+                @The.Daily_catch
+            </div>
+            <div id="footer-text" class="cta-text">{{footer}}</div>
+        </div>
+
+    </div>
+
+{{{{raw}}}}
+    <script>
+        /** * Logic preserved to ensure your automation works correctly.
+         * Hides elements if variables are empty.
+         */
+        function cleanUI() {
+            const data = {
+                tag: "{{type}}",
+                headline: "{{headline}}",
+                subheadline: "{{subheadline}}",
+                header: "{{header}}",
+                body: "{{body}}",
+                footer: "{{footer}}"
+            };
+
+            Object.keys(data).forEach(key => {
+                const el = document.getElementById(key === 'footer' ? 'footer-text' : key);
+                const val = data[key];
+
+                // Check for empty values or unreplaced Handlebars tags
+                if (!val || val.includes('{{') || val === 'null' || val === 'undefined' || val.trim() === '') {
+                    if (el) el.classList.add('hide-me');
+                }
+            });
+
+            // Layout Logic: Hide groups if their primary content is missing
+            const hasHeadline = data.headline && !data.headline.includes('{{') && data.headline !== 'null' && data.headline.trim() !== '';
+            if (!hasHeadline) {
+                const cov = document.getElementById('cover-group');
+                if (cov) cov.classList.add('hide-me');
+            }
+
+            const hasHeader = data.header && !data.header.includes('{{') && data.header !== 'null' && data.header.trim() !== '';
+            const hasBody = data.body && !data.body.includes('{{') && data.body !== 'null' && data.body.trim() !== '';
+            
+            if (!hasHeader && !hasBody) {
+                const con = document.getElementById('content-group');
+                if (con) con.classList.add('hide-me');
+            }
+        }
+
+        window.onload = cleanUI;
+    </script>
+{{{{/raw}}}}
+</body>
+</html>

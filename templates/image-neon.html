@@ -1,0 +1,319 @@
+y<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* --- Cinematic Variables --- */
+        :root {
+            --neon-primary: #00f2ff; /* Cyber Cyan */
+            --neon-secondary: #fff;  /* Crisp White */
+            --text-main: #ffffff;
+            --glass-panel: rgba(0, 0, 0, 0.45); /* Darker glass for contrast */
+            --border-glass: rgba(255, 255, 255, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1080px;
+            height: 1350px;
+            background-color: #000;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* --- Background Layer Setup --- */
+        .stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            padding: 70px;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        /* The Dynamic Image */
+        .bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background-image: url('{{bg_image}}'); 
+            background-size: cover;
+            opacity : 0.6;
+            background-position: center;
+            /* Slight scale animation can be added here if exported as video */
+        }
+
+        /* The "Scrim" - Essential for text readability over images */
+        .bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                /* Top darker for header visibility */
+                linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 25%),
+                /* Bottom darker for footer visibility */
+                linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0) 60%);
+        }
+
+        /* Cinematic Noise Texture (Optional: Adds "High End" feel) */
+        .bg-overlay::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* --- Top Nav --- */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* Drop shadow to separate from image */
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        .category-tag {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--neon-primary);
+            color: var(--neon-primary);
+            padding: 10px 25px;
+            border-radius: 50px; /* Pill shape looks more modern */
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 20px;
+        }
+
+        .slide-indicator {
+            font-size: 32px;
+            font-weight: 300;
+            color: rgba(255,255,255,0.8);
+            letter-spacing: 2px;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            /* Push content slightly lower for "Insta" composition */
+            padding-bottom: 50px; 
+        }
+
+        /* Type 1: Headline Hero */
+        .hero-headline {
+            font-size: 100px;
+            font-weight: 900;
+            line-height: 0.9;
+            text-transform: uppercase;
+            letter-spacing: -3px;
+            margin-bottom: 25px;
+            /* Strong shadow to pop off the image */
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .hero-sub {
+            font-size: 40px;
+            font-weight: 600;
+            color: #fff;
+            background: var(--neon-primary);
+            color: #000;
+            display: inline-block;
+            padding: 5px 15px;
+            transform: skewX(-10deg); /* Stylistic choice */
+        }
+
+        /* Type 2: Content Card (Glass) */
+        .content-card {
+            background: var(--glass-panel);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-glass);
+            padding: 60px;
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            margin-top: 40px;
+        }
+
+        .card-header {
+            font-size: 60px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 25px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .card-body {
+            font-size: 36px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+            white-space: pre-wrap;
+            font-weight: 400;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .handle {
+            font-weight: 700;
+            font-size: 26px;
+            color: white;
+            display: flex;
+            align-items: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .handle img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 2px solid var(--neon-primary);
+        }
+
+        /* Fallback if no avatar image is available */
+        .handle-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 15px;
+            background: var(--neon-primary);
+            display: block;
+        }
+
+        .cta-text {
+            color: var(--neon-primary);
+            font-weight: 700;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+
+        /* Helper */
+        .hide-me { display: none !important; }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-layer"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="stage">
+        
+        <div class="top-nav">
+            <div id="tag" class="category-tag">{{type}}</div>
+            <div class="slide-indicator">{{slide_number}}/4</div>
+        </div>
+
+        <div class="main-content">
+            <div id="cover-group">
+                <h1 id="headline" class="hero-headline">{{headline}}</h1>
+                <div style="display:block;">
+                     <span id="subheadline" class="hero-sub">{{subheadline}}</span>
+                </div>
+            </div>
+
+            <div id="content-group" class="content-card">
+                <h2 id="header" class="card-header">{{header}}</h2>
+                <div id="body" class="card-body">{{body}}</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="handle">
+                <span class="handle-icon"></span> 
+                @The.Daily_catch
+            </div>
+            <div id="footer-text" class="cta-text">{{footer}}</div>
+        </div>
+    </div>
+
+{{{{raw}}}}
+    <script>
+        /** * Logic to clean up UI based on missing data
+         */
+        function cleanUI() {
+            // Added bg_image to the data map
+            const data = {
+                bg_image: "{{bg_image}}", 
+                tag: "{{type}}",
+                headline: "{{headline}}",
+                subheadline: "{{subheadline}}",
+                header: "{{header}}",
+                body: "{{body}}",
+                footer: "{{footer}}"
+            };
+
+            // 1. Element Hiding Loop
+            Object.keys(data).forEach(key => {
+                // Background image is handled via CSS, so we skip the loop for it
+                if(key === 'bg_image') return;
+
+                const el = document.getElementById(key === 'footer' ? 'footer-text' : key);
+                const val = data[key];
+
+                if (!val || val.includes('{{') || val === 'null' || val === 'undefined' || val.trim() === '') {
+                    if (el) el.classList.add('hide-me');
+                }
+            });
+
+            // 2. Group Logic
+            // If headline is missing, hide the cover group
+            const hasHeadline = data.headline && !data.headline.includes('{{') && data.headline.trim() !== '';
+            if (!hasHeadline) {
+                const cov = document.getElementById('cover-group');
+                if (cov) cov.classList.add('hide-me');
+            }
+
+            // If header and body are missing, hide the content card
+            const hasHeader = data.header && !data.header.includes('{{') && data.header.trim() !== '';
+            const hasBody = data.body && !data.body.includes('{{') && data.body.trim() !== '';
+            
+            if (!hasHeader && !hasBody) {
+                const con = document.getElementById('content-group');
+                if (con) con.classList.add('hide-me');
+            }
+
+            // 3. Background Image Fallback (Optional)
+            // If the user didn't provide a bg_image, fallback to a dark color to keep text readable
+            const bgVal = data.bg_image;
+            if (!bgVal || bgVal.includes('{{') || bgVal.trim() === '') {
+                document.querySelector('.bg-layer').style.backgroundColor = '#1a1a1a';
+                document.querySelector('.bg-layer').style.backgroundImage = 'none';
+            }
+        }
+
+        window.onload = cleanUI;
+    </script>
+{{{{/raw}}}}
+</body>
+</html>
