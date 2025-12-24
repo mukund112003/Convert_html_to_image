@@ -7,7 +7,7 @@ import handlebars from "handlebars";
 
 
 const app = express();
-const PORT = process.env.PORT || 3000; 
+const PORT = process.env.PORT || 3000;
 
 // Limit payload size to prevent memory overflow
 app.use(express.json({ limit: "10mb" }));
@@ -255,6 +255,8 @@ async function getBrowser() {
           "--disable-background-timer-throttling",
           "--disable-renderer-backgrounding",
           "--disable-backgrounding-occluded-windows",
+          "--disable-web-security",
+          "--allow-file-access-from-files",
         ],
         defaultViewport: {
           width: 1080,
@@ -341,7 +343,7 @@ async function getRenderedHtml(templateName, data) {
   try {
     // 1. Construct the file path
     const filePath = path.join(process.cwd(), 'templates', `${templateName}.html`);
-  
+
     console.log(filePath)
     // 2. Read the HTML file
     const templateSource = await fs.readFile(filePath, 'utf-8');
@@ -373,12 +375,12 @@ app.post("/generate-image", async (req, res) => {
       options = {},
     } = req.body;
 
-if (!templateName || !data) {
+    if (!templateName || !data) {
       return res.status(400).json({ error: "Missing 'templateName' or 'data' object" });
     }
 
     // Generate HTML
-const html = await getRenderedHtml(templateName, data);
+    const html = await getRenderedHtml(templateName, data);
 
     // Size check
     const htmlSize = Buffer.byteLength(html, 'utf8');

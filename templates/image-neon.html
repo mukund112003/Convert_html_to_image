@@ -6,10 +6,13 @@
     <style>
         /* --- Cinematic Variables --- */
         :root {
-            --neon-primary: #00f2ff; /* Cyber Cyan */
-            --neon-secondary: #fff;  /* Crisp White */
+            --neon-primary: #00f2ff;
+            /* Cyber Cyan */
+            --neon-secondary: #fff;
+            /* Crisp White */
             --text-main: #ffffff;
-            --glass-panel: rgba(0, 0, 0, 0.45); /* Darker glass for contrast */
+            --glass-panel: rgba(0, 0, 0, 0.45);
+            /* Darker glass for contrast */
             --border-glass: rgba(255, 255, 255, 0.15);
         }
 
@@ -47,9 +50,9 @@
             width: 100%;
             height: 100%;
             z-index: -2;
-            background-image: url('{{bg_image}}'); 
+            background-image: url('{{bg_image}}');
             background-size: cover;
-            opacity : 0.6;
+            opacity: 0.6;
             background-position: center;
             /* Slight scale animation can be added here if exported as video */
         }
@@ -62,11 +65,11 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            background: 
+            background:
                 /* Top darker for header visibility */
-                linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 25%),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 25%),
                 /* Bottom darker for footer visibility */
-                linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0) 60%);
+                linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 30%, rgba(0, 0, 0, 0) 60%);
         }
 
         /* Cinematic Noise Texture (Optional: Adds "High End" feel) */
@@ -88,7 +91,7 @@
             justify-content: space-between;
             align-items: center;
             /* Drop shadow to separate from image */
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
         }
 
         .category-tag {
@@ -97,7 +100,8 @@
             border: 1px solid var(--neon-primary);
             color: var(--neon-primary);
             padding: 10px 25px;
-            border-radius: 50px; /* Pill shape looks more modern */
+            border-radius: 50px;
+            /* Pill shape looks more modern */
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 3px;
@@ -107,7 +111,7 @@
         .slide-indicator {
             font-size: 32px;
             font-weight: 300;
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             letter-spacing: 2px;
         }
 
@@ -116,9 +120,9 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center; 
+            justify-content: center;
             /* Push content slightly lower for "Insta" composition */
-            padding-bottom: 50px; 
+            padding-bottom: 50px;
         }
 
         /* Type 1: Headline Hero */
@@ -130,7 +134,7 @@
             letter-spacing: -3px;
             margin-bottom: 25px;
             /* Strong shadow to pop off the image */
-            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .hero-sub {
@@ -141,7 +145,8 @@
             color: #000;
             display: inline-block;
             padding: 5px 15px;
-            transform: skewX(-10deg); /* Stylistic choice */
+            transform: skewX(-10deg);
+            /* Stylistic choice */
         }
 
         /* Type 2: Content Card (Glass) */
@@ -152,7 +157,7 @@
             border: 1px solid var(--border-glass);
             padding: 60px;
             border-radius: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
             margin-top: 40px;
         }
 
@@ -161,7 +166,7 @@
             font-weight: 800;
             color: white;
             margin-bottom: 25px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
         .card-body {
@@ -178,7 +183,7 @@
             justify-content: space-between;
             align-items: center;
             padding-top: 30px;
-            border-top: 1px solid rgba(255,255,255,0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .handle {
@@ -187,7 +192,7 @@
             color: white;
             display: flex;
             align-items: center;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
         }
 
         .handle img {
@@ -196,6 +201,8 @@
             border-radius: 50%;
             margin-right: 15px;
             border: 2px solid var(--neon-primary);
+            background-color: white;
+            padding: 4px;
         }
 
         /* Fallback if no avatar image is available */
@@ -218,7 +225,9 @@
         }
 
         /* Helper */
-        .hide-me { display: none !important; }
+        .hide-me {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -228,7 +237,7 @@
     <div class="bg-overlay"></div>
 
     <div class="stage">
-        
+
         <div class="top-nav">
             <div id="tag" class="category-tag">{{type}}</div>
             <div class="slide-indicator">{{slide_number}}/4</div>
@@ -238,7 +247,7 @@
             <div id="cover-group">
                 <h1 id="headline" class="hero-headline">{{headline}}</h1>
                 <div style="display:block;">
-                     <span id="subheadline" class="hero-sub">{{subheadline}}</span>
+                    <span id="subheadline" class="hero-sub">{{subheadline}}</span>
                 </div>
             </div>
 
@@ -250,21 +259,21 @@
 
         <div class="footer">
             <div class="handle">
-                <span class="handle-icon"></span> 
+                <img src="../assets/logo.png" alt="Logo" />
                 @The.Daily_catch
             </div>
             <div id="footer-text" class="cta-text">{{footer}}</div>
         </div>
     </div>
 
-{{{{raw}}}}
+    {{{{raw}}}}
     <script>
         /** * Logic to clean up UI based on missing data
          */
         function cleanUI() {
             // Added bg_image to the data map
             const data = {
-                bg_image: "{{bg_image}}", 
+                bg_image: "{{bg_image}}",
                 tag: "{{type}}",
                 headline: "{{headline}}",
                 subheadline: "{{subheadline}}",
@@ -276,7 +285,7 @@
             // 1. Element Hiding Loop
             Object.keys(data).forEach(key => {
                 // Background image is handled via CSS, so we skip the loop for it
-                if(key === 'bg_image') return;
+                if (key === 'bg_image') return;
 
                 const el = document.getElementById(key === 'footer' ? 'footer-text' : key);
                 const val = data[key];
@@ -297,7 +306,7 @@
             // If header and body are missing, hide the content card
             const hasHeader = data.header && !data.header.includes('{{') && data.header.trim() !== '';
             const hasBody = data.body && !data.body.includes('{{') && data.body.trim() !== '';
-            
+
             if (!hasHeader && !hasBody) {
                 const con = document.getElementById('content-group');
                 if (con) con.classList.add('hide-me');
@@ -314,6 +323,7 @@
 
         window.onload = cleanUI;
     </script>
-{{{{/raw}}}}
+    {{{{/raw}}}}
 </body>
+
 </html>

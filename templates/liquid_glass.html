@@ -6,26 +6,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;800&display=swap" rel="stylesheet">
-    
+
     <style>
         /* --- Liquid Glass Variables --- */
         :root {
             --bg-deep: #0f0c29;
-            --blob-1: #ff00cc;   /* Magenta */
-            --blob-2: #333399;   /* Deep Blue */
-            --blob-3: #00d4ff;   /* Cyan */
-            
+            --blob-1: #ff00cc;
+            /* Magenta */
+            --blob-2: #333399;
+            /* Deep Blue */
+            --blob-3: #00d4ff;
+            /* Cyan */
+
             --text-main: #ffffff;
             --text-muted: rgba(255, 255, 255, 0.85);
-            
+
             /* Glass Styles */
             --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.15);
             --glass-shine: rgba(255, 255, 255, 0.1);
-            --shadow-soft: 0 20px 50px rgba(0,0,0,0.5);
+            --shadow-soft: 0 20px 50px rgba(0, 0, 0, 0.5);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             width: 1080px;
@@ -40,7 +47,10 @@
         /* --- 1. Background Liquid Layer --- */
         .liquid-bg {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 0;
             background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
             overflow: hidden;
@@ -56,31 +66,37 @@
         }
 
         .blob-1 {
-            width: 700px; height: 700px;
+            width: 700px;
+            height: 700px;
             background: var(--blob-1);
-            top: -150px; left: -150px;
-            animation: float 10s ease-in-out infinite;
+            top: -150px;
+            left: -150px;
         }
 
         .blob-2 {
-            width: 600px; height: 600px;
+            width: 600px;
+            height: 600px;
             background: var(--blob-3);
-            bottom: -100px; right: -100px;
-            animation: float 12s ease-in-out infinite reverse;
+            bottom: -100px;
+            right: -100px;
         }
 
         .blob-3 {
-            width: 400px; height: 400px;
+            width: 400px;
+            height: 400px;
             background: var(--blob-2);
-            top: 40%; left: 30%;
+            top: 40%;
+            left: 30%;
             opacity: 0.6;
-            animation: pulse 8s ease-in-out infinite;
         }
-        
+
         /* Noise Texture Overlay for that 'Premium' feel */
         .noise-overlay {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: url('https://grainy-gradients.vercel.app/noise.svg');
             opacity: 0.05;
             z-index: 1;
@@ -118,17 +134,17 @@
             letter-spacing: 3px;
             font-size: 20px;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
         }
 
         .slide-indicator {
             font-size: 28px;
             font-weight: 300;
-            color: rgba(255,255,255,0.6);
-            background: rgba(0,0,0,0.2);
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(0, 0, 0, 0.2);
             padding: 10px 20px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         /* --- 4. Main Content Area --- */
@@ -155,7 +171,7 @@
             background: linear-gradient(to right, #fff 20%, #e0e0e0 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+            filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.2));
         }
 
         .hero-sub {
@@ -169,12 +185,15 @@
 
         /* Slide 2-4: The Nested Glass Card */
         .content-card {
-            background: rgba(0, 0, 0, 0.2); /* Darker internal glass */
+            background: rgba(0, 0, 0, 0.2);
+            /* Darker internal glass */
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-top: 1px solid rgba(255, 255, 255, 0.3); /* Top highlight */
-            border-left: 1px solid rgba(255, 255, 255, 0.3); /* Left highlight */
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            /* Top highlight */
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+            /* Left highlight */
             padding: 70px;
             border-radius: 40px;
             box-shadow: var(--shadow-soft);
@@ -186,8 +205,11 @@
         .content-card::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
             pointer-events: none;
         }
 
@@ -213,25 +235,25 @@
             justify-content: space-between;
             align-items: center;
             padding-top: 30px;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .handle {
             font-weight: 500;
             font-size: 24px;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
         .handle-icon {
-            width: 40px; height: 40px;
-            background: linear-gradient(135deg, var(--blob-1), var(--blob-2));
+            width: 40px;
+            height: 40px;
+            background: white;
             border-radius: 50%;
-            display: grid;
-            place-items: center;
-            font-size: 14px;
+            padding: 4px;
+            object-fit: contain;
         }
 
         .cta-text {
@@ -244,20 +266,9 @@
         }
 
         /* --- Logic Utilities --- */
-        .hide-me { display: none !important; }
-
-        /* Animations for "Static" Screenshots - optional but adds life if viewed in browser */
-        @keyframes float {
-            0% { transform: translate(0px, 0px); }
-            50% { transform: translate(30px, 50px); }
-            100% { transform: translate(0px, 0px); }
+        .hide-me {
+            display: none !important;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.1); opacity: 0.4; }
-            100% { transform: scale(1); opacity: 0.6; }
-        }
-
     </style>
 </head>
 
@@ -293,7 +304,7 @@
 
         <div class="footer">
             <div class="handle">
-                <div class="handle-icon">IG</div>
+                <img src="../assets/logo.png" class="handle-icon" />
                 @The.Daily_catch
             </div>
             <div id="footer-text" class="cta-text">{{footer}}</div>
@@ -301,7 +312,7 @@
 
     </div>
 
-{{{{raw}}}}
+    {{{{raw}}}}
     <script>
         /** * Logic preserved to ensure your automation works correctly.
          * Hides elements if variables are empty.
@@ -335,7 +346,7 @@
 
             const hasHeader = data.header && !data.header.includes('{{') && data.header !== 'null' && data.header.trim() !== '';
             const hasBody = data.body && !data.body.includes('{{') && data.body !== 'null' && data.body.trim() !== '';
-            
+
             if (!hasHeader && !hasBody) {
                 const con = document.getElementById('content-group');
                 if (con) con.classList.add('hide-me');
@@ -344,6 +355,7 @@
 
         window.onload = cleanUI;
     </script>
-{{{{/raw}}}}
+    {{{{/raw}}}}
 </body>
+
 </html>

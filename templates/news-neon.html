@@ -164,15 +164,18 @@
             align-items: center;
         }
 
-        .handle::before {
-            content: '';
-            width: 12px;
-            height: 12px;
-            background: var(--neon-primary);
-            margin-right: 15px;
+
+        .handle img {
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            box-shadow: 0 0 10px var(--neon-primary);
+            margin-right: 15px;
+            border: 2px solid var(--neon-primary);
+            background-color: white;
+            padding: 4px;
         }
+
+        /* .handle::before removed */
 
         .cta-text {
             color: var(--neon-primary);
@@ -213,11 +216,12 @@
         </div>
 
         <div class="footer">
-            <div class="handle">@The.Daily_catch</div>
+            <div class="handle"><img src="../assets/logo.png" />@The.Daily_catch
+            </div>
             <div id="footer-text" class="cta-text">{{footer}}</div>
         </div>
     </div>
-{{{{raw}}}}
+    {{{{raw}}}}
     <script>
         /** * Using Handlebars raw blocks to prevent the engine from 
          * parsing the JavaScript logic.
@@ -251,7 +255,7 @@
 
             const hasHeader = data.header && !data.header.includes('{{') && data.header !== 'null' && data.header.trim() !== '';
             const hasBody = data.body && !data.body.includes('{{') && data.body !== 'null' && data.body.trim() !== '';
-            
+
             if (!hasHeader && !hasBody) {
                 const con = document.getElementById('content-group');
                 if (con) con.classList.add('hide-me');
