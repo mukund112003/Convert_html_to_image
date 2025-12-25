@@ -4,6 +4,10 @@ import chromium from "@sparticuz/chromium";
 import fs from "fs/promises"; // For reading files
 import path from "path";
 import handlebars from "handlebars";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 const app = express();
