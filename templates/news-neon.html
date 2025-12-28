@@ -188,6 +188,9 @@
         .hide-me {
             display: none !important;
         }
+        #content-group.hide-me {
+            margin-top: 0 !important;
+        }
     </style>
 </head>
 
@@ -208,10 +211,12 @@
                 <p id="subheadline" class="hero-sub">{{subheadline}}</p>
             </div>
 
+            {{#if header || body}}
             <div id="content-group" class="content-card">
                 <h2 id="header" class="card-header">{{header}}</h2>
                 <div id="body" class="card-body">{{body}}</div>
             </div>
+            {{/if}}
 
         </div>
 
@@ -253,12 +258,20 @@
                 if (cov) cov.classList.add('hide-me');
             }
 
-            const hasHeader = data.header && !data.header.includes('{{') && data.header !== 'null' && data.header.trim() !== '';
-            const hasBody = data.body && !data.body.includes('{{') && data.body !== 'null' && data.body.trim() !== '';
+             const hasHeader =
+                typeof data.header === 'string' &&
+                !data.header.includes('{{') &&
+                data.header.trim().length > 0;
 
+            const hasBody =
+                typeof data.body === 'string' &&
+                !data.body.includes('{{') &&
+                data.body.trim().length > 0;
+
+            // If BOTH are missing → hide entire card
             if (!hasHeader && !hasBody) {
-                const con = document.getElementById('content-group');
-                if (con) con.classList.add('hide-me');
+                const contentGroup = document.getElementById('content-group');
+                if (contentGroup) contentGroup.classList.add('hide-me');
             }
         }
 
