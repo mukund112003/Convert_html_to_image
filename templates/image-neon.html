@@ -259,12 +259,19 @@
                 <h2 id="header" class="card-header">{{header}}</h2>
                 <div id="body" class="card-body">{{body}}</div>
             </div> -->
-            {{#if header || body}}
+            {{#if header}}
             <div id="content-group" class="content-card">
                 <h2 id="header" class="card-header">{{header}}</h2>
+                {{#if body}}
+                <div id="body" class="card-body">{{body}}</div>
+                {{/if}}
+            </div>
+            {{else if body}}
+            <div id="content-group" class="content-card">
                 <div id="body" class="card-body">{{body}}</div>
             </div>
             {{/if}}
+
 
         </div>
 
