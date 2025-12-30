@@ -232,6 +232,13 @@
         #content-group.hide-me {
             margin-top: 0 !important;
         }
+
+        /* Push hero content lower when it's the only thing visible */
+        .hero-only {
+            justify-content: flex-end !important;
+            padding-bottom: 180px;
+            /* adjust this number for taste */
+        }
     </style>
 </head>
 
@@ -344,6 +351,12 @@
             if (!bgVal || bgVal.includes('{{') || bgVal.trim() === '') {
                 document.querySelector('.bg-layer').style.backgroundColor = '#1a1a1a';
                 document.querySelector('.bg-layer').style.backgroundImage = 'none';
+            }
+
+            const hasContentCard = hasHeader || hasBody;
+
+            if (!hasContentCard && hasHeadline) {
+                document.querySelector('.main-content')?.classList.add('hero-only');
             }
         }
 
