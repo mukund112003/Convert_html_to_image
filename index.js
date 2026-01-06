@@ -313,34 +313,6 @@ function sanitizeText(text) {
     .replace(/'/g, '&#039;');
 }
 
-// Determine which template to use
-function selectTemplate(data) {
-  if (data.htmlOverride) {
-    return data.htmlOverride;
-  }
-
-  // Sanitize inputs
-  const sanitizedData = {
-    headline: sanitizeText(data.headline),
-    summary: sanitizeText(data.summary),
-    tag: sanitizeText(data.tag),
-    date: data.date === 'NOW'
-      ? new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      : sanitizeText(data.date),
-    branding: sanitizeText(data.branding),
-    tagColor: data.tagColor,
-    backgroundImageUrl: data.backgroundImageUrl,
-  };
-
-  // Use background template if background image is provided
-  if (data.backgroundImageUrl) {
-    return BG_IMAGE_TEMPLATE(sanitizedData);
-  }
-
-  // Default to text-only template
-  return TEXT_ONLY_TEMPLATE(sanitizedData);
-}
-
 
 /* ======================================================
    TEMPLATE ENGINE LOADER
@@ -421,6 +393,34 @@ app.post("/generate-image", async (req, res) => {
       page.evaluateHandle("document.fonts.ready"),
       new Promise((resolve) => setTimeout(resolve, 2000)),
     ]).catch(() => console.warn("⚠️ Font loading timeout"));
+
+    // Wait for all images to actually load and decode
+    await page.evaluate(async () => {
+      const selectors = Array.from(document.querySelectorAll("img"));
+      await Promise.all([
+        document.fonts.ready,
+        ...selectors.map((img) => {
+          if (img.complete) return;
+          return new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = resolve; // Continue even if one image fails
+          });
+        }),
+        // Also wait for the background image if it exists
+        new Promise((resolve) => {
+          const bgLayer = document.querySelector('.bg-layer');
+          if (!bgLayer) return resolve();
+          const style = window.getComputedStyle(bgLayer);
+          const url = style.backgroundImage.slice(4, -1).replace(/"/g, "");
+          if (!url || url === 'none') return resolve();
+
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.src = url;
+        })
+      ]);
+    });
 
     // Capture screenshot
     const image = await page.screenshot({
