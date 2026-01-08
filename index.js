@@ -5,6 +5,10 @@ import fs from "fs/promises"; // For reading files
 import path from "path";
 import handlebars from "handlebars";
 import { fileURLToPath } from "url";
+import axios from "axios";
+import { google } from "googleapis";
+import { instagramGetUrl } from "instagram-url-direct";
+import { createWriteStream, createReadStream, existsSync, unlinkSync, readFileSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,206 +17,54 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// =====================
+// UPLOAD CONFIG & AUTH
+// =====================
+const CLIENT_ID = "1097502371492-qd87edioo8nk9hgbrnfp8lvuq0kms3cl.apps.googleusercontent.com";
+const CLIENT_SECRET = "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";
+const REDIRECT_URI = "http://localhost";
+
+const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+// Read tokens synchronously at startup
+try {
+  const tokensPath = path.join(process.cwd(), "tokens.json");
+  if (existsSync(tokensPath)) {
+    const tokens = JSON.parse(readFileSync(tokensPath, 'utf8'));
+    oauth2Client.setCredentials(tokens);
+    console.log("✅ YouTube Upload Tokens loaded");
+  } else {
+    console.warn("⚠️ tokens.json not found, upload will fail");
+  }
+} catch (e) {
+  console.error("❌ Failed to load tokens:", e.message);
+}
+
+const youtube = google.youtube({ version: "v3", auth: oauth2Client });
+
+// =====================
+// UPLOAD HELPERS
+// =====================
+async function downloadFile(url, outputPath) {
+  const response = await axios({
+    method: "GET",
+    url: url,
+    responseType: "stream",
+  });
+
+  return new Promise((resolve, reject) => {
+    const writer = createWriteStream(outputPath);
+    response.data.pipe(writer);
+    writer.on("finish", resolve);
+    writer.on("error", reject);
+  });
+}
+
 // Limit payload size to prevent memory overflow
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 
-/* ======================================================
-   HTML TEMPLATES (Memory-efficient inline templates)
-====================================================== */
-
-// Template 1: Text-only (gradient background)
-const TEXT_ONLY_TEMPLATE = (data) => `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .container {
-      background: white;
-      border-radius: 24px;
-      padding: 60px;
-      max-width: 900px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-    .tag {
-      display: inline-block;
-      background: ${data.tagColor || '#10b981'};
-      color: white;
-      padding: 10px 24px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 24px;
-    }
-    .headline {
-      font-size: 52px;
-      font-weight: 800;
-      color: #1f2937;
-      margin: 24px 0;
-      line-height: 1.2;
-      word-wrap: break-word;
-    }
-    .summary {
-      font-size: 24px;
-      color: #6b7280;
-      line-height: 1.6;
-      margin: 24px 0;
-      word-wrap: break-word;
-    }
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 40px;
-      padding-top: 30px;
-      border-top: 2px solid #e5e7eb;
-    }
-    .date {
-      font-size: 16px;
-      color: #9ca3af;
-      font-weight: 500;
-    }
-    .branding {
-      font-size: 16px;
-      color: #667eea;
-      font-weight: 600;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    ${data.tag ? `<span class="tag">${data.tag}</span>` : ''}
-    <h1 class="headline">${data.headline || 'Your Headline Here'}</h1>
-    ${data.summary ? `<p class="summary">${data.summary}</p>` : ''}
-    <div class="footer">
-      <div class="date">${data.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-      ${data.branding ? `<div class="branding">${data.branding}</div>` : ''}
-    </div>
-  </div>
-</body>
-</html>`;
-
-// Template 2: Background image with text overlay
-const BG_IMAGE_TEMPLATE = (data) => `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-      overflow: hidden;
-    }
-    .bg-container {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      background-image: url('${data.backgroundImageUrl}');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 60px;
-    }
-    .tag {
-      display: inline-block;
-      background: ${data.tagColor || 'rgba(16, 185, 129, 0.9)'};
-      color: white;
-      padding: 10px 24px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 20px;
-      backdrop-filter: blur(10px);
-      width: fit-content;
-    }
-    .headline {
-      font-size: 56px;
-      font-weight: 800;
-      color: white;
-      margin: 20px 0;
-      line-height: 1.2;
-      text-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      word-wrap: break-word;
-      max-width: 90%;
-    }
-    .summary {
-      font-size: 26px;
-      color: rgba(255, 255, 255, 0.95);
-      line-height: 1.6;
-      margin: 20px 0;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      word-wrap: break-word;
-      max-width: 85%;
-    }
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 30px;
-    }
-    .date {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.8);
-      font-weight: 500;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-    .branding {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.9);
-      font-weight: 600;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-  </style>
-</head>
-<body>
-  <div class="bg-container">
-    <div class="overlay">
-      ${data.tag ? `<span class="tag">${data.tag}</span>` : ''}
-      <h1 class="headline">${data.headline || 'Your Headline Here'}</h1>
-      ${data.summary ? `<p class="summary">${data.summary}</p>` : ''}
-      <div class="footer">
-        <div class="date">${data.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        ${data.branding ? `<div class="branding">${data.branding}</div>` : ''}
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
 
 /* ======================================================
    BROWSER MANAGER (OPTIMIZED FOR LOW MEMORY)
@@ -298,20 +150,6 @@ setInterval(async () => {
   }
 }, 60000); // Check every minute
 
-/* ======================================================
-   HELPER FUNCTIONS
-====================================================== */
-
-// Sanitize text to prevent XSS
-function sanitizeText(text) {
-  if (typeof text !== 'string') return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
 
 
 /* ======================================================
@@ -476,9 +314,89 @@ app.get("/", (req, res) => {
     status: "online",
     endpoints: {
       generate: "POST /generate-image",
+      upload: "POST /upload-from-reel",
       health: "GET /health",
     },
   });
+});
+
+/* ======================================================
+   YOUTUBE UPLOAD ENDPOINT
+====================================================== */
+app.post("/upload-from-reel", async (req, res) => {
+  const { reelUrl, title, description } = req.body;
+
+  if (!reelUrl) {
+    return res.status(400).json({ error: "Instagram Reel URL is required" });
+  }
+
+  const tempFileName = `reel_${Date.now()}.mp4`;
+  const tempPath = path.join(process.cwd(), tempFileName);
+
+  try {
+    console.log("🔍 Extracting direct video link from Reel...");
+
+    // ROBUST CHECK: Some versions use .default, others call the module directly
+    const getLinkFunc = (typeof instagramGetUrl === 'function')
+      ? instagramGetUrl
+      : instagramGetUrl.default;
+
+    if (typeof getLinkFunc !== 'function') {
+      throw new Error("The Instagram scraper library failed to load properly.");
+    }
+
+    const results = await getLinkFunc(reelUrl);
+
+    // Check various common return properties for this library
+    const directMp4Url = results.url_list?.[0] || results.links?.[0]?.url || results.media;
+
+    if (!directMp4Url) {
+      console.log("Scraper Response:", results);
+      throw new Error("Could not find a valid video link. The Reel might be private or the scraper is blocked.");
+    }
+
+    console.log("🔗 Found direct link:", directMp4Url);
+
+    console.log("⬇️ Downloading video...");
+    await downloadFile(directMp4Url, tempPath);
+
+    console.log("⬆️ Uploading to YouTube...");
+    const youtubeResponse = await youtube.videos.insert({
+      part: ["snippet", "status"],
+      requestBody: {
+        snippet: {
+          title: title || "New Short",
+          description: description || "Uploaded from Instagram Reel",
+          tags: ["shorts", "reels"],
+          categoryId: "22",
+        },
+        status: {
+          privacyStatus: "public",
+          selfDeclaredMadeForKids: false,
+        },
+      },
+      media: {
+        body: createReadStream(tempPath),
+      },
+    });
+
+
+    if (existsSync(tempPath)) unlinkSync(tempPath);
+
+    res.status(200).json({
+      success: true,
+      youtubeId: youtubeResponse.data.id,
+      url: `https://youtube.com/shorts/${youtubeResponse.data.id}`
+    });
+
+  } catch (error) {
+    if (existsSync(tempPath)) unlinkSync(tempPath);
+    console.error("❌ Upload Process failed:", error.message);
+    res.status(500).json({
+      error: "Failed to process reel",
+      details: error.message
+    });
+  }
 });
 
 // Error handling middleware
